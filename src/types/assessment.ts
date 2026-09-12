@@ -173,7 +173,13 @@ export interface UserAccount {
   participantCategory?: string;
   domain?: string;
   isMasterclassRegistered?: boolean;
+  level2Status?: 'completed' | 'in_progress' | 'not_started';
+  level2Score?: number;
+  level2Tier?: string;
+  level2SubmittedAt?: string;
 }
+
+export * from './level2';
 
 export interface WebinarRegistration {
   registrationId: string;

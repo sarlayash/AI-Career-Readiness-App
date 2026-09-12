@@ -9,6 +9,7 @@ import {
   Tooltip 
 } from 'recharts';
 import { 
+  ArrowRight,
   Award, 
   Calendar, 
   CheckCircle2, 
@@ -33,12 +34,14 @@ interface ReportViewProps {
   submission: AssessmentSubmission;
   onRetake?: () => void;
   onViewAll?: () => void;
+  onStartLevel2?: () => void;
 }
 
 export const ReportView: React.FC<ReportViewProps> = ({
   submission,
   onRetake,
-  onViewAll
+  onViewAll,
+  onStartLevel2
 }) => {
   const [activeWeek, setActiveWeek] = useState(1);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -200,6 +203,35 @@ export const ReportView: React.FC<ReportViewProps> = ({
               Deterministic Scoring Engine v1.0
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Level 2 Assessment Promotion Banner */}
+      <div className="bg-gradient-to-r from-blue-950/60 via-indigo-950/40 to-slate-900 border border-blue-500/40 rounded-2xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              Next Step: Level 2 Applied Assessment
+            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              Test Real Use Cases & Available Market AI Tools
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Advance from foundational readiness to live market tools (Claude 3.5, Cursor, CrewAI, NotebookLM, RAG). Generates your customized 90-day transformation roadmap based on this Level 1 report and your domain profile!
+            </p>
+          </div>
+
+          {onStartLevel2 && (
+            <button
+              onClick={onStartLevel2}
+              className="shrink-0 px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 flex items-center gap-2 transition-all cursor-pointer group"
+            >
+              <span>Take Level 2 Assessment</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+          )}
         </div>
       </div>
 

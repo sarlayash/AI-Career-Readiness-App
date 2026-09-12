@@ -27,6 +27,7 @@ interface LandingPageProps {
   webinarConfig: WebinarConfig | null;
   learningConfig: LearningConfig | null;
   onStartAssessment: () => void;
+  onStartLevel2?: () => void;
   onNavigate: (route: string) => void;
   onOpenRegisterModal?: () => void;
   onOpenEmailHub?: () => void;
@@ -38,6 +39,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   webinarConfig,
   learningConfig,
   onStartAssessment,
+  onStartLevel2,
   onNavigate,
   onOpenRegisterModal,
   onOpenEmailHub,
@@ -97,6 +99,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span>Start AI Readiness Assessment</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
+
+                {onStartLevel2 && (
+                  <button
+                    id="hero-start-level2-btn"
+                    onClick={onStartLevel2}
+                    className="px-6 py-4 rounded-xl text-sm sm:text-base font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-purple-500 active:scale-[0.99] transition-all shadow-xl shadow-purple-600/25 flex items-center justify-center gap-2 group cursor-pointer border border-purple-400/30"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>Level 2: Applied AI & Tools</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white uppercase tracking-wider">
+                      NEW
+                    </span>
+                  </button>
+                )}
 
                 {onOpenRegisterModal && (
                   <button

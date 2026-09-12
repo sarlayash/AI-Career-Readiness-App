@@ -18,7 +18,8 @@ import {
   Check, 
   Sparkles,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Zap
 } from 'lucide-react';
 import { UserAccount } from '../../types/assessment';
 import { exportLearnersCsv } from '../../services/firebase';
@@ -39,7 +40,7 @@ export const AdminLearners: React.FC<AdminLearnersProps> = ({
   lastRefreshed
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'not_started' | 'webinar'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'level2' | 'not_started' | 'webinar'>('all');
   const [deviceFilter, setDeviceFilter] = useState<'all' | 'Mobile' | 'Desktop' | 'Tablet'>('all');
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
@@ -52,6 +53,7 @@ export const AdminLearners: React.FC<AdminLearnersProps> = ({
   // Metrics calculations
   const totalCount = users.length;
   const completedCount = users.filter((u) => u.assessmentStatus === 'completed' || (u.latestScore !== undefined)).length;
+  const level2Count = users.filter((u) => u.level2Status === 'completed' || (u.level2Score !== undefined)).length;
   const webinarCount = users.filter((u) => u.isMasterclassRegistered).length;
   const mobileCount = users.filter((u) => u.deviceType === 'Mobile').length;
   const desktopCount = users.filter((u) => u.deviceType === 'Desktop' || !u.deviceType).length;
@@ -65,14 +67,17 @@ export const AdminLearners: React.FC<AdminLearnersProps> = ({
     const emailMatch = (u.email || '').toLowerCase().includes(term);
     const domainMatch = (u.domain || '').toLowerCase().includes(term);
     const catMatch = (u.participantCategory || '').toLowerCase().includes(term);
-    const matchesSearch = !term || nameMatch || emailMatch || domainMatch || catMatch;
+    const l2Match = (u.level2Tier || '').toLowerCase().includes(term);
+    const matchesSearch = !term || nameMatch || emailMatch || domainMatch || catMatch || l2Match;
 
     // Status filter
     let matchesStatus = true;
     if (statusFilter === 'completed') {
       matchesStatus = u.assessmentStatus === 'completed' || u.latestScore !== undefined;
+    } else if (statusFilter === 'level2') {
+      matchesStatus = u.level2Status === 'completed' || u.level2Score !== undefined;
     } else if (statusFilter === 'not_started') {
-      matchesStatus = u.assessmentStatus !== 'completed' && u.latestScore === undefined;
+      matchesStatus = u.assessmentStatus !== 'completed' && u.latestScore === undefined && u.level2Status !== 'completed';
     } else if (statusFilter === 'webinar') {
       matchesStatus = !!u.isMasterclassRegistered;
     }
@@ -240,7 +245,17 @@ export const AdminLearners: React.FC<AdminLearnersProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Assessed ({completedCount})
+              Level 1 Done ({completedCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter('level2')}
+              className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                statusFilter === 'level2'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-indigo-300 hover:text-white'
+              }`}
+            >
+              Level 2 Applied ({level2Count})
             </button>
             <button
               onClick={() => setStatusFilter('not_started')}
@@ -328,7 +343,8 @@ export const AdminLearners: React.FC<AdminLearnersProps> = ({
                   <th className="py-3.5 px-4 sm:px-6">Learner Profile</th>
                   <th className="py-3.5 px-4">Contact & Role</th>
                   <th className="py-3.5 px-4">Device & Browser</th>
-                  <th className="py-3.5 px-4">Assessment Status</th>
+                  <th className="py-3.5 px-4">Level 1 Baseline</th>
+                  <th className="py-3.5 px-4">Level 2 Applied AI</th>
                   <th className="py-3.5 px-4">Masterclass RSVP</th>
                   <th className="py-3.5 px-4 sm:px-6 text-right">Last Active</th>
                 </tr>
@@ -427,17 +443,17 @@ export const AdminLearners: React.FC<AdminLearnersProps> = ({
                         </div>
                       </td>
 
-                      {/* Assessment Status */}
+                      {/* Assessment Status Level 1 */}
                       <td className="py-4 px-4">
                         {isAssessed ? (
                           <div className="space-y-1">
                             <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
                               <CheckCircle2 className="w-3 h-3" />
-                              <span>Completed: {learner.latestScore !== undefined ? `${learner.latestScore}/100` : 'Assessed'}</span>
+                              <span>{learner.latestScore !== undefined ? `${learner.latestScore}/100` : 'Assessed'}</span>
                             </div>
                             {learner.latestBand && (
                               <div className="text-[10px] text-slate-400 font-medium pl-1">
-                                Band: <span className="text-slate-200">{learner.latestBand}</span>
+                                {learner.latestBand}
                               </div>
                             )}
                           </div>
@@ -446,6 +462,25 @@ export const AdminLearners: React.FC<AdminLearnersProps> = ({
                             <Clock className="w-3 h-3" />
                             <span>Not Started</span>
                           </div>
+                        )}
+                      </td>
+
+                      {/* Level 2 Applied AI Status */}
+                      <td className="py-4 px-4">
+                        {learner.level2Status === 'completed' || learner.level2Score !== undefined ? (
+                          <div className="space-y-1">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold">
+                              <Zap className="w-3 h-3 text-indigo-400" />
+                              <span>{learner.level2Score}/100</span>
+                            </div>
+                            {learner.level2Tier && (
+                              <div className="text-[10px] text-indigo-300 font-medium pl-1 truncate max-w-[140px]" title={learner.level2Tier}>
+                                {learner.level2Tier}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-500 font-mono">Pending</span>
                         )}
                       </td>
 

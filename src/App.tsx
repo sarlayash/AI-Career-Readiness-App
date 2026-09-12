@@ -13,9 +13,13 @@ import { PrivacyNotice } from './components/PrivacyNotice';
 import { LoginPage } from './components/LoginPage';
 import { DEFAULT_ASSESSMENT_CONFIG, DEFAULT_LEARNING_CONFIG, DEFAULT_WEBINAR_CONFIG } from './config/defaultConfigs';
 import { AssessmentConfig, AssessmentSubmission, LearningConfig, UserProfile, WebinarConfig, WebinarRegistration } from './types/assessment';
-import { getAssessmentConfig, getLearningConfig, getWebinarConfig, getUserWebinarRegistration } from './services/firebase';
+import { Level2Submission } from './types/level2';
+import { getAssessmentConfig, getLearningConfig, getWebinarConfig, getUserWebinarRegistration, getUserLatestLevel2Submission } from './services/firebase';
 import { OneClickRegisterModal } from './components/OneClickRegisterModal';
 import { EmailRemindersModal } from './components/EmailRemindersModal';
+import { Level2Intro } from './components/level2/Level2Intro';
+import { Level2Flow } from './components/level2/Level2Flow';
+import { Level2ReportView } from './components/level2/Level2ReportView';
 
 const AppContent: React.FC = () => {
   const { user, latestSubmission, hasCompletedAssessment } = useAuth();
@@ -45,6 +49,17 @@ const AppContent: React.FC = () => {
   const [emailRemindersModalOpen, setEmailRemindersModalOpen] = useState(false);
   const [userRegistration, setUserRegistration] = useState<WebinarRegistration | null>(null);
 
+  // Level 2 Applied AI Benchmark state
+  const [level2Stage, setLevel2Stage] = useState<'intro' | 'flow'>('intro');
+  const [level2Profile, setLevel2Profile] = useState<{
+    fullName: string;
+    email: string;
+    domain: string;
+    experienceLevel: string;
+    primaryCareerGoal: string;
+  } | null>(null);
+  const [latestLevel2Submission, setLatestLevel2Submission] = useState<Level2Submission | null>(null);
+
   // Check user registration on mount or user switch
   useEffect(() => {
     const checkReg = async () => {
@@ -57,6 +72,18 @@ const AppContent: React.FC = () => {
       }
     };
     checkReg();
+
+    // Fetch Level 2 submission
+    const fetchL2 = async () => {
+      const idOrEmail = user?.uid || user?.email || localStorage.getItem('portal_user_email');
+      if (idOrEmail) {
+        const l2 = await getUserLatestLevel2Submission(idOrEmail);
+        if (l2) {
+          setLatestLevel2Submission(l2);
+        }
+      }
+    };
+    fetchL2();
 
     // Listen for cross-component registration updates
     const handleRegUpdate = (e: any) => {
@@ -160,6 +187,10 @@ const AppContent: React.FC = () => {
             webinarConfig={webinarConfig}
             learningConfig={learningConfig}
             onStartAssessment={handleStartAssessment}
+            onStartLevel2={() => {
+              setLevel2Stage('intro');
+              navigateTo('/level2');
+            }}
             onNavigate={navigateTo}
             onOpenRegisterModal={() => setRegisterModalOpen(true)}
             onOpenEmailHub={() => setEmailRemindersModalOpen(true)}
@@ -210,6 +241,10 @@ const AppContent: React.FC = () => {
                 submission={activeReportSubmission}
                 onRetake={config.retakesEnabled ? handleRetake : undefined}
                 onViewAll={() => navigateTo('/my-submissions')}
+                onStartLevel2={() => {
+                  setLevel2Stage('intro');
+                  navigateTo('/level2');
+                }}
               />
             ) : (
               <div className="max-w-md mx-auto px-4 py-16 text-center">
@@ -225,6 +260,79 @@ const AppContent: React.FC = () => {
                     className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors"
                   >
                     Start Assessment Now
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Route: Level 2 Applied AI Benchmark */}
+        {currentRoute === '/level2' && (
+          <div>
+            {level2Stage === 'intro' ? (
+              <Level2Intro
+                level1Submission={activeReportSubmission}
+                onStartLevel2={(p) => {
+                  setLevel2Profile(p);
+                  setLevel2Stage('flow');
+                }}
+                onViewLevel1Report={() => navigateTo('/report')}
+                onTakeLevel1First={handleStartAssessment}
+              />
+            ) : (
+              <Level2Flow
+                profile={
+                  level2Profile || {
+                    fullName: user?.displayName || 'Learner',
+                    email: user?.email || '',
+                    domain: activeReportSubmission?.profile?.currentDomain || 'IT / Software',
+                    experienceLevel: activeReportSubmission?.profile?.experienceLevel || '1–3 years',
+                    primaryCareerGoal: activeReportSubmission?.profile?.primaryCareerGoal || 'Upskill in applied AI'
+                  }
+                }
+                level1Submission={activeReportSubmission}
+                onComplete={(sub) => {
+                  setLatestLevel2Submission(sub);
+                  setLevel2Stage('intro');
+                  navigateTo('/level2/report');
+                }}
+                onCancel={() => setLevel2Stage('intro')}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Route: Level 2 Customized Journey & Report */}
+        {currentRoute === '/level2/report' && (
+          <div>
+            {latestLevel2Submission ? (
+              <Level2ReportView
+                submission={latestLevel2Submission}
+                onRetake={() => {
+                  setLevel2Stage('intro');
+                  navigateTo('/level2');
+                }}
+                onViewLevel1Report={() => navigateTo('/report')}
+                onViewAll={() => navigateTo('/my-submissions')}
+              />
+            ) : (
+              <div className="max-w-md mx-auto px-4 py-16 text-center">
+                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 shadow-xl space-y-4">
+                  <h3 className="text-lg font-bold text-slate-100">
+                    No Level 2 Report Available
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    You haven't completed the Level 2 Applied AI Benchmark yet. Take the 6-8 minute assessment to evaluate live tools and generate your customized 90-day transformation roadmap.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setLevel2Stage('intro');
+                      navigateTo('/level2');
+                    }}
+                    className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+                  >
+                    Start Level 2 Assessment Now
                   </button>
                 </div>
               </div>

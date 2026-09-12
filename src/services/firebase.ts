@@ -36,7 +36,8 @@ import {
   PortalUser,
   UserAccount,
   WebinarConfig,
-  WebinarRegistration
+  WebinarRegistration,
+  Level2Submission
 } from '../types/assessment';
 import { detectDeviceAndBrowser } from '../utils/deviceInfo';
 
@@ -325,7 +326,46 @@ export async function getAllUsers(): Promise<UserAccount[]> {
     // ignore
   }
 
-  // 3. Cross-reference with webinar registrations
+  // 3. Cross-reference with level2Submissions
+  try {
+    const l2Snap = await getDocs(collection(db, 'level2Submissions'));
+    l2Snap.forEach((docSnap) => {
+      const l2 = docSnap.data() as Level2Submission;
+      if (l2 && l2.uid) {
+        const existing = learnersMap.get(l2.uid);
+        if (existing) {
+          existing.level2Status = 'completed';
+          existing.level2Score = l2.overallScore;
+          existing.level2Tier = l2.tierLabel;
+          existing.level2SubmittedAt = l2.submittedAt;
+        } else {
+          learnersMap.set(l2.uid, {
+            uid: l2.uid,
+            displayName: l2.userName || 'Learner',
+            email: l2.userEmail || '',
+            photoURL: null,
+            role: 'participant',
+            createdAt: l2.submittedAt || new Date().toISOString(),
+            lastLoginAt: l2.submittedAt || new Date().toISOString(),
+            authProvider: 'google',
+            deviceType: 'Desktop',
+            browserName: 'Web Browser',
+            deviceDescription: 'Web Browser',
+            assessmentStatus: 'not_started',
+            level2Status: 'completed',
+            level2Score: l2.overallScore,
+            level2Tier: l2.tierLabel,
+            level2SubmittedAt: l2.submittedAt,
+            domain: l2.domain
+          });
+        }
+      }
+    });
+  } catch (e) {
+    // ignore
+  }
+
+  // 4. Cross-reference with webinar registrations
   try {
     const regsSnap = await getDocs(collection(db, 'webinarRegistrations'));
     regsSnap.forEach((docSnap) => {
@@ -411,6 +451,9 @@ export function exportLearnersCsv(users: UserAccount[]): void {
     'Assessment Status',
     'Readiness Score',
     'Readiness Band',
+    'Level 2 Status',
+    'Level 2 Score',
+    'Level 2 Tier',
     'Masterclass RSVP',
     'Category',
     'Domain',
@@ -429,6 +472,9 @@ export function exportLearnersCsv(users: UserAccount[]): void {
     `"${u.assessmentStatus || 'not_started'}"`,
     `"${u.latestScore !== undefined ? u.latestScore : 'N/A'}"`,
     `"${u.latestBand || 'N/A'}"`,
+    `"${u.level2Status || 'not_started'}"`,
+    `"${u.level2Score !== undefined ? u.level2Score : 'N/A'}"`,
+    `"${(u.level2Tier || 'N/A').replace(/"/g, '""')}"`,
     `"${u.isMasterclassRegistered ? 'Yes (Confirmed)' : 'No'}"`,
     `"${(u.participantCategory || '').replace(/"/g, '""')}"`,
     `"${(u.domain || '').replace(/"/g, '""')}"`,
@@ -551,6 +597,148 @@ export async function getAllSubmissions(): Promise<AssessmentSubmission[]> {
     return submissions;
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
+  }
+}
+
+// ==========================================
+// Level 2 Applied AI Submissions Service
+// ==========================================
+export async function saveLevel2Submission(
+  submission: Level2Submission
+): Promise<string> {
+  const path = `level2Submissions/${submission.submissionId}`;
+  try {
+    const docRef = doc(db, 'level2Submissions', submission.submissionId);
+    await setDoc(docRef, submission);
+
+    // Synchronize to users/{uid}
+    if (submission.uid) {
+      try {
+        const userRef = doc(db, 'users', submission.uid);
+        await updateDoc(userRef, {
+          level2Status: 'completed',
+          level2Score: submission.overallScore,
+          level2Tier: submission.tierLabel,
+          level2SubmittedAt: submission.submittedAt,
+          domain: submission.domain,
+          lastLoginAt: submission.submittedAt
+        }).catch(() => {});
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Cache latest submission locally
+    try {
+      localStorage.setItem('portal_latest_level2_submission', JSON.stringify(submission));
+      localStorage.setItem(`portal_l2_${submission.uid}`, JSON.stringify(submission));
+    } catch (e) {
+      // ignore
+    }
+
+    // Trigger Admin Notification
+    try {
+      createPortalNotification({
+        notificationId: `l2_done_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        recipientType: 'admin',
+        title: `🚀 Level 2 Applied AI Completed: ${submission.userName || 'Learner'}`,
+        message: `${submission.userName} (${submission.userEmail}) scored ${submission.overallScore}/100 (${submission.tierLabel}) in ${submission.domain}.`,
+        type: 'assessment',
+        createdAt: submission.submittedAt,
+        read: false,
+        cleared: false,
+        metadata: {
+          submissionId: submission.submissionId,
+          score: submission.overallScore,
+          tier: submission.tierLabel,
+          email: submission.userEmail,
+          domain: submission.domain
+        }
+      }).catch(() => {});
+    } catch (e) {
+      // ignore
+    }
+
+    return submission.submissionId;
+  } catch (error) {
+    console.warn('Level 2 submission write fallback:', error);
+    try {
+      localStorage.setItem('portal_latest_level2_submission', JSON.stringify(submission));
+      localStorage.setItem(`portal_l2_${submission.uid}`, JSON.stringify(submission));
+    } catch (e) {}
+    return submission.submissionId;
+  }
+}
+
+export async function getUserLevel2Submissions(uid: string): Promise<Level2Submission[]> {
+  const path = 'level2Submissions';
+  try {
+    const q = query(
+      collection(db, 'level2Submissions'),
+      where('uid', '==', uid)
+    );
+    const snap = await getDocs(q);
+    const submissions: Level2Submission[] = [];
+    snap.forEach((docSnap) => {
+      submissions.push(docSnap.data() as Level2Submission);
+    });
+    submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+    return submissions;
+  } catch (error) {
+    console.warn('Level 2 user submissions query fallback to local cache:', error);
+    try {
+      const local = localStorage.getItem(`portal_l2_${uid}`) || localStorage.getItem('portal_latest_level2_submission');
+      if (local) return [JSON.parse(local)];
+    } catch (e) {}
+    return [];
+  }
+}
+
+export async function getUserLatestLevel2Submission(uidOrEmail: string): Promise<Level2Submission | null> {
+  try {
+    const list = await getUserLevel2Submissions(uidOrEmail);
+    if (list && list.length > 0) return list[0];
+    
+    // Check by email if uid query returned nothing
+    if (uidOrEmail.includes('@')) {
+      const qEmail = query(
+        collection(db, 'level2Submissions'),
+        where('userEmail', '==', uidOrEmail)
+      );
+      const snap = await getDocs(qEmail);
+      const subs: Level2Submission[] = [];
+      snap.forEach((d) => subs.push(d.data() as Level2Submission));
+      if (subs.length > 0) {
+        subs.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+        return subs[0];
+      }
+    }
+  } catch (e) {
+    console.warn('getUserLatestLevel2Submission fallback:', e);
+  }
+
+  // Fallback to local cache
+  try {
+    const cached = localStorage.getItem('portal_latest_level2_submission');
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
+  return null;
+}
+
+export async function getAllLevel2Submissions(): Promise<Level2Submission[]> {
+  const path = 'level2Submissions';
+  try {
+    const snap = await getDocs(collection(db, 'level2Submissions'));
+    const submissions: Level2Submission[] = [];
+    snap.forEach((docSnap) => {
+      submissions.push(docSnap.data() as Level2Submission);
+    });
+    submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+    return submissions;
+  } catch (error) {
+    console.warn('All Level 2 submissions fetch fallback:', error);
+    return [];
   }
 }
 

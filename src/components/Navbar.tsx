@@ -89,7 +89,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-              Take Assessment
+              Level 1
+            </button>
+
+            <button
+              id="nav-level2-btn"
+              onClick={() => handleNav('/level2')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                currentRoute.startsWith('/level2')
+                  ? 'text-white bg-indigo-600/30 text-indigo-300 border border-indigo-500/40' 
+                  : 'text-indigo-300 hover:text-white hover:bg-slate-800/40'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Level 2: Applied AI</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                NEW
+              </span>
             </button>
 
             {/* Featured Masterclass 1-Click Quick CTA in Header */}
@@ -280,7 +296,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-blue-400 hover:bg-slate-800 flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            Take Assessment
+            <span>Level 1 Assessment</span>
+          </button>
+          <button
+            id="mobile-nav-level2"
+            onClick={() => handleNav('/level2')}
+            className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-indigo-300 hover:bg-slate-800 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-indigo-400" />
+              <span>Level 2: Applied AI</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              NEW
+            </span>
           </button>
           {hasCompletedAssessment && (
             <>

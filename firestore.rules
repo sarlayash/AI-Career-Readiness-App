@@ -56,6 +56,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Level 2 Applied AI Submissions Collection
+    match /level2Submissions/{submissionId} {
+      allow get, list: if true;
+      allow create: if isValidId(submissionId) &&
+        request.resource.data.keys().hasAll(['submissionId', 'uid', 'overallScore', 'tierLabel', 'status']) &&
+        request.resource.data.overallScore is number &&
+        request.resource.data.overallScore >= 0 &&
+        request.resource.data.overallScore <= 100;
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
     // Assessment Questions Bank (Public read, Admin write)
     match /assessmentQuestions/{questionId} {
       allow read: if true;

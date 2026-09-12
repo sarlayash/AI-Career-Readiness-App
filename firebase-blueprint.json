@@ -154,6 +154,24 @@
         "metadata": { "type": "object" }
       },
       "required": ["notificationId", "recipientType", "title", "message", "type", "createdAt"]
+    },
+    "Level2Submission": {
+      "title": "Level2Submission",
+      "description": "Level 2 Applied AI Market Tools and Enterprise Use Cases evaluation record",
+      "type": "object",
+      "properties": {
+        "submissionId": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 254 },
+        "userName": { "type": "string", "maxLength": 200 },
+        "domain": { "type": "string", "maxLength": 100 },
+        "experienceLevel": { "type": "string", "maxLength": 64 },
+        "overallScore": { "type": "number" },
+        "tierLabel": { "type": "string", "maxLength": 100 },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["completed", "in_progress"] }
+      },
+      "required": ["submissionId", "uid", "overallScore", "tierLabel", "submittedAt", "status"]
     }
   },
   "firestore": {
@@ -164,6 +182,10 @@
     "/assessmentSubmissions/{submissionId}": {
       "schema": { "$ref": "#/entities/AssessmentSubmission" },
       "description": "User assessment submissions"
+    },
+    "/level2Submissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/Level2Submission" },
+      "description": "User Level 2 Applied AI submissions and customized journeys"
     },
     "/assessmentQuestions/{questionId}": {
       "schema": { "$ref": "#/entities/AssessmentQuestion" },
