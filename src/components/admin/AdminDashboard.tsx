@@ -17,12 +17,13 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getAllSubmissions, getAssessmentConfig, logAdminAction } from '../../services/firebase';
-import { AssessmentConfig, AssessmentSubmission, LearningConfig, WebinarConfig } from '../../types/assessment';
+import { getAllSubmissions, getAllUsers, getAssessmentConfig, logAdminAction } from '../../services/firebase';
+import { AssessmentConfig, AssessmentSubmission, LearningConfig, UserAccount, WebinarConfig } from '../../types/assessment';
 import { AdminFilters, DEFAULT_FILTERS, FilterState } from './AdminFilters';
 import { AdminOverview } from './AdminOverview';
 import { AdminCharts } from './AdminCharts';
 import { AdminSubmissions } from './AdminSubmissions';
+import { AdminLearners } from './AdminLearners';
 import { AdminQuestionAnalytics } from './AdminQuestionAnalytics';
 import { AdminConfiguration } from './AdminConfiguration';
 import { AdminAuditLogs } from './AdminAuditLogs';
@@ -50,22 +51,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const { user, isAdmin, adminSessionActive, logoutAdminSession } = useAuth();
 
   const [submissions, setSubmissions] = useState<AssessmentSubmission[]>([]);
+  const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [activeTab, setActiveTab] = useState<'overview' | 'charts' | 'submissions' | 'registrations' | 'questions' | 'config' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'learners' | 'charts' | 'submissions' | 'registrations' | 'questions' | 'config' | 'audit'>('overview');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
   const [exportWarningModal, setExportWarningModal] = useState<boolean>(false);
 
-  // Fetch all submissions from Firestore
-  const fetchSubmissionsData = async () => {
+  // Fetch all submissions & all registered users from Firestore
+  const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const data = await getAllSubmissions();
-      setSubmissions(data);
+      const [subsData, usersData] = await Promise.all([
+        getAllSubmissions(),
+        getAllUsers()
+      ]);
+      setSubmissions(subsData);
+      setUsers(usersData);
       setLastRefreshed(new Date());
     } catch (err) {
-      console.error('Failed to load admin submissions:', err);
+      console.error('Failed to load admin submissions/users:', err);
     } finally {
       setLoading(false);
     }
@@ -73,7 +79,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     if (isAdmin) {
-      fetchSubmissionsData();
+      fetchDashboardData();
     }
   }, [isAdmin]);
 
@@ -207,7 +213,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="flex flex-wrap items-center gap-2.5 text-xs">
           <button
             id="admin-refresh-btn"
-            onClick={fetchSubmissionsData}
+            onClick={fetchDashboardData}
             disabled={loading}
             className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
@@ -270,6 +276,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           }`}
         >
           Executive Overview
+        </button>
+
+        <button
+          id="admin-tab-learners"
+          onClick={() => setActiveTab('learners')}
+          className={`px-4 py-2.5 rounded-lg font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'learners'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-sky-400 hover:text-sky-300 hover:bg-slate-800/60'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5 text-sky-400" />
+          <span>Learners & Users Directory ({users.length})</span>
         </button>
 
         <button
@@ -366,6 +385,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <AdminOverview
           submissions={filteredSubmissions}
           allSubmissionsCount={submissions.length}
+          users={users}
+        />
+      )}
+
+      {activeTab === 'learners' && (
+        <AdminLearners
+          users={users}
+          loading={loading}
+          onRefresh={fetchDashboardData}
+          lastRefreshed={lastRefreshed}
         />
       )}
 
@@ -403,7 +432,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         isOpen={isSampleModalOpen}
         onClose={() => setIsSampleModalOpen(false)}
         config={config}
-        onRefreshData={fetchSubmissionsData}
+        onRefreshData={fetchDashboardData}
         sampleCount={sampleCount}
       />
 

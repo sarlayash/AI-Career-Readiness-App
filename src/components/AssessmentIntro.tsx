@@ -36,7 +36,7 @@ export const AssessmentIntro: React.FC<AssessmentIntroProps> = ({
   onViewExistingReport,
   onRetake
 }) => {
-  const { user, hasCompletedAssessment, latestSubmission, signInWithGoogle } = useAuth();
+  const { user, hasCompletedAssessment, latestSubmission, signInWithGoogle, signInDirectLearner } = useAuth();
 
   const [fullName, setFullName] = useState(user?.displayName || '');
   const [participantCategory, setParticipantCategory] = useState(PARTICIPANT_CATEGORIES[4]); // Working professional default
@@ -47,6 +47,12 @@ export const AssessmentIntro: React.FC<AssessmentIntroProps> = ({
   const [consent, setConsent] = useState(false);
   const [analyticsConsent, setAnalyticsConsent] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Direct 1-click registration state for any device/browser
+  const [directName, setDirectName] = useState('');
+  const [directEmail, setDirectEmail] = useState('');
+  const [directSubmitting, setDirectSubmitting] = useState(false);
+  const [directError, setDirectError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.displayName && !fullName) {
@@ -98,34 +104,50 @@ export const AssessmentIntro: React.FC<AssessmentIntroProps> = ({
     );
   }
 
-  // Not signed in with Google yet
+  const handleDirectRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directName.trim() || !directEmail.trim()) {
+      setDirectError('Please provide both your full name and valid email address.');
+      return;
+    }
+    if (!directEmail.includes('@') || !directEmail.includes('.')) {
+      setDirectError('Please provide a valid email format.');
+      return;
+    }
+
+    setDirectSubmitting(true);
+    setDirectError(null);
+    try {
+      await signInDirectLearner(directName.trim(), directEmail.trim());
+    } catch (err: any) {
+      setDirectError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setDirectSubmitting(false);
+    }
+  };
+
+  // Not signed in with Google or direct account yet
   if (!user) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-16">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 text-center shadow-xl">
+      <div className="max-w-xl mx-auto px-4 py-12 md:py-16">
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center shadow-2xl">
           <div className="w-14 h-14 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-7 h-7" />
           </div>
 
-          <h2 className="text-2xl font-bold text-slate-100 mb-3">
-            Sign In with Google
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">
+            AI Career Readiness Assessment
           </h2>
 
-          <p className="text-slate-400 text-sm leading-relaxed mb-6">
-            To prevent duplicate entries and deliver your confidential, personalized AI readiness report and 30-day action plan, please authenticate with your Google account.
+          <p className="text-slate-400 text-xs sm:text-sm leading-relaxed mb-6">
+            Begin your confidential evaluation. You can log in from any phone, tablet, laptop, or desktop browser.
           </p>
 
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-left text-xs text-slate-400 mb-6 space-y-1.5">
-            <div className="font-semibold text-slate-300">Privacy Safeguards:</div>
-            <div>• We capture your verified email and display name for your report.</div>
-            <div>• We never store passwords or request unnecessary permissions.</div>
-            <div>• Your report remains private and is only accessible by you.</div>
-          </div>
-
+          {/* Option A: 1-Click Google Sign-In */}
           <button
             id="intro-google-signin-btn"
             onClick={() => signInWithGoogle()}
-            className="w-full py-3 px-4 rounded-lg bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm transition-all flex items-center justify-center gap-3 shadow-md"
+            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm transition-all flex items-center justify-center gap-3 shadow-md"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
@@ -147,6 +169,76 @@ export const AssessmentIntro: React.FC<AssessmentIntroProps> = ({
             </svg>
             <span>Continue with Google</span>
           </button>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-800" />
+            </div>
+            <div className="relative flex justify-center text-[11px] uppercase tracking-wider font-semibold">
+              <span className="bg-slate-900 px-3 text-slate-500">
+                OR 1-CLICK REGISTER ON ANY DEVICE
+              </span>
+            </div>
+          </div>
+
+          {/* Option B: 1-Click Direct Learner Register (Works on ANY device, mobile, safari, without popups) */}
+          <form onSubmit={handleDirectRegister} className="space-y-3 text-left">
+            {directError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{directError}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Your Full Name
+              </label>
+              <input
+                id="direct-register-name"
+                type="text"
+                value={directName}
+                onChange={(e) => setDirectName(e.target.value)}
+                placeholder="e.g. Sarah Jenkins"
+                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Your Email Address
+              </label>
+              <input
+                id="direct-register-email"
+                type="email"
+                value={directEmail}
+                onChange={(e) => setDirectEmail(e.target.value)}
+                placeholder="e.g. sarah@company.com"
+                className="w-full px-3.5 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                required
+              />
+            </div>
+
+            <button
+              id="intro-direct-register-btn"
+              type="submit"
+              disabled={directSubmitting}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-60 cursor-pointer"
+            >
+              <span>{directSubmitting ? 'Registering...' : '1-Click Start Assessment'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 text-center pt-1">
+              <span>✓ Instant access</span>
+              <span>•</span>
+              <span>✓ All mobile & desktop browsers</span>
+              <span>•</span>
+              <span>✓ No popups required</span>
+            </div>
+          </form>
         </div>
       </div>
     );

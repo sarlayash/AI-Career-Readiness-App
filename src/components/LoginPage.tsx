@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles, ShieldCheck, ArrowRight, UserCheck, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, ShieldCheck, ArrowRight, UserCheck, LogOut, AlertCircle, Smartphone, Monitor } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface LoginPageProps {
@@ -11,7 +11,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onStartAssessment,
   onViewReport
 }) => {
-  const { user, signInWithGoogle, logout, hasCompletedAssessment, latestSubmission, loading } = useAuth();
+  const { user, account, signInWithGoogle, signInDirectLearner, logout, hasCompletedAssessment, latestSubmission, loading } = useAuth();
+  const [directName, setDirectName] = useState('');
+  const [directEmail, setDirectEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleDirectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!directName.trim() || !directEmail.trim()) {
+      setErrorMsg('Please enter both your name and email address.');
+      return;
+    }
+    if (!directEmail.includes('@') || !directEmail.includes('.')) {
+      setErrorMsg('Please enter a valid email format.');
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMsg(null);
+    try {
+      await signInDirectLearner(directName.trim(), directEmail.trim());
+    } catch (e: any) {
+      setErrorMsg(e?.message || 'Login failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-md mx-auto px-4 py-16">
@@ -21,13 +47,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </div>
 
         <h1 className="text-2xl font-bold text-slate-100 mb-2">
-          {user ? 'Account Authenticated' : 'Learner Authentication'}
+          {user ? 'Account Authenticated' : 'Learner Portal Login'}
         </h1>
 
         <p className="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
           {user
-            ? 'Your account is linked to the AI Career Readiness Self-Assessment portal.'
-            : 'Sign in with your Google account to take the assessment, safeguard your submission history, and receive your personalized action plan.'}
+            ? 'Your account is linked to the AI Career Readiness Self-Assessment portal across your devices.'
+            : 'Sign in to access your assessment, track your readiness scores, and claim your Masterclass pass.'}
         </p>
 
         {user ? (
@@ -50,6 +76,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </div>
                 </div>
               </div>
+
+              {account?.deviceDescription && (
+                <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <span className="text-slate-500">Device:</span>
+                  <span className="text-slate-300 font-medium">{account.deviceDescription}</span>
+                </div>
+              )}
 
               {hasCompletedAssessment && latestSubmission && (
                 <div className="pt-2 border-t border-slate-700/60 text-xs text-slate-300 flex justify-between items-center">
@@ -90,12 +123,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5 text-left">
+            {errorMsg && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Google Login Option */}
             <button
               id="google-login-btn"
               onClick={() => signInWithGoogle()}
               disabled={loading}
-              className="w-full py-3 px-4 rounded-lg bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-3 shadow-md cursor-pointer disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-3 shadow-md cursor-pointer disabled:opacity-50"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -118,9 +159,61 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <span>Continue with Google</span>
             </button>
 
+            {/* Divider */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-800" />
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-semibold">
+                <span className="bg-slate-900 px-3 text-slate-500">
+                  OR DIRECT LOGIN (ANY DEVICE & BROWSER)
+                </span>
+              </div>
+            </div>
+
+            {/* Direct 1-Click Form */}
+            <form onSubmit={handleDirectSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={directName}
+                  onChange={(e) => setDirectName(e.target.value)}
+                  placeholder="e.g. Alex Rivera"
+                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={directEmail}
+                  onChange={(e) => setDirectEmail(e.target.value)}
+                  placeholder="e.g. alex@company.com"
+                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-lg text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                <span>{submitting ? 'Connecting...' : '1-Click Direct Sign In'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </form>
+
             <div className="pt-2 text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-              <span>We never share or sell personal information</span>
+              <span>Works seamlessly across iOS Safari, Android, Chrome & Edge</span>
             </div>
           </div>
         )}

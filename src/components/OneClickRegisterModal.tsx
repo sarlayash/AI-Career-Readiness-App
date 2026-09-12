@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { WebinarConfig, WebinarRegistration, PortalNotification } from '../types/assessment';
-import { registerForWebinar, createPortalNotification } from '../services/firebase';
+import { registerForWebinar, createPortalNotification, loginWithGoogle } from '../services/firebase';
 import { 
   chimeService, 
   requestPushNotificationPermission, 
@@ -44,7 +44,7 @@ export const OneClickRegisterModal: React.FC<OneClickRegisterModalProps> = ({
   onRegistrationSuccess,
   onOpenEmailHub
 }) => {
-  const { user, loginWithGoogle } = useAuth();
+  const { user, signInDirectLearner } = useAuth();
 
   const [fullName, setFullName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -184,7 +184,17 @@ export const OneClickRegisterModal: React.FC<OneClickRegisterModalProps> = ({
   const handleManualRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) return;
-    await executeRegistration(fullName || 'Executive Attendee', email);
+    try {
+      let activeUid = user?.uid;
+      if (!user) {
+        const createdAccount = await signInDirectLearner(fullName || 'Executive Attendee', email, category, domain);
+        activeUid = createdAccount.uid;
+      }
+      await executeRegistration(fullName || 'Executive Attendee', email, activeUid);
+    } catch (err) {
+      console.error('Manual registration error:', err);
+      await executeRegistration(fullName || 'Executive Attendee', email);
+    }
   };
 
   return (

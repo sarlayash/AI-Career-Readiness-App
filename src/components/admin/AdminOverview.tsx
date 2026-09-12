@@ -12,22 +12,29 @@ import {
   BarChart3
 } from 'lucide-react';
 import { DIMENSIONS } from '../../config/defaultConfigs';
-import { AssessmentSubmission, DimensionId } from '../../types/assessment';
+import { AssessmentSubmission, DimensionId, UserAccount } from '../../types/assessment';
+import { Smartphone, Monitor } from 'lucide-react';
 
 interface AdminOverviewProps {
   submissions: AssessmentSubmission[];
   allSubmissionsCount: number;
+  users?: UserAccount[];
 }
 
 export const AdminOverview: React.FC<AdminOverviewProps> = ({
   submissions,
-  allSubmissionsCount
+  allSubmissionsCount,
+  users = []
 }) => {
-  if (submissions.length === 0) {
+  const usersCount = users.length;
+  const mobileCount = users.filter((u) => u.deviceType === 'Mobile').length;
+  const desktopCount = users.filter((u) => u.deviceType === 'Desktop' || !u.deviceType).length;
+
+  if (submissions.length === 0 && usersCount === 0) {
     return (
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center my-6">
         <FileText className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-        <h3 className="text-lg font-bold text-slate-200">No submissions yet</h3>
+        <h3 className="text-lg font-bold text-slate-200">No submissions or learners yet</h3>
         <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
           No participant records matched your active filters or the database is currently empty.
         </p>
@@ -118,6 +125,40 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* Top Cross-Platform Learner Base Banner */}
+      <div className="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/30 border border-blue-500/20 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+            <Users className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Total User Base</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Any Device & Any Browser
+              </span>
+            </div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-100 mt-0.5">
+              {usersCount > 0 ? usersCount : allSubmissionsCount} Registered Learners & Accounts
+            </div>
+            <div className="text-xs text-slate-400 mt-0.5">
+              {submissions.length} assessments completed • {mobileCount} mobile users • {desktopCount} desktop users
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <div className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center gap-2">
+            <Smartphone className="w-3.5 h-3.5 text-sky-400" />
+            <span className="text-slate-300 font-medium">{mobileCount} Mobile</span>
+          </div>
+          <div className="px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 flex items-center gap-2">
+            <Monitor className="w-3.5 h-3.5 text-slate-300" />
+            <span className="text-slate-300 font-medium">{desktopCount} Desktop</span>
+          </div>
+        </div>
+      </div>
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Completed */}

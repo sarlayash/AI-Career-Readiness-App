@@ -147,6 +147,14 @@ export interface AdminAuditLog {
   metadata?: Record<string, any>;
 }
 
+export interface PortalUser {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  isDirect?: boolean;
+}
+
 export interface UserAccount {
   uid: string;
   displayName: string | null;
@@ -155,6 +163,16 @@ export interface UserAccount {
   role: 'participant' | 'admin';
   createdAt: string;
   lastLoginAt: string;
+  authProvider?: 'google' | 'direct' | 'guest';
+  deviceType?: 'Mobile' | 'Tablet' | 'Desktop';
+  browserName?: string;
+  deviceDescription?: string;
+  assessmentStatus?: 'completed' | 'in_progress' | 'not_started';
+  latestScore?: number;
+  latestBand?: string;
+  participantCategory?: string;
+  domain?: string;
+  isMasterclassRegistered?: boolean;
 }
 
 export interface WebinarRegistration {

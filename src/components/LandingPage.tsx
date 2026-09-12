@@ -60,119 +60,198 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28 border-b border-slate-800/80 bg-gradient-to-b from-[#0b101e] via-[#0d1424] to-[#090e1a]">
-        {/* Subtle grid backdrop */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b0f_1px,transparent_1px),linear-gradient(to_bottom,#1e293b0f_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+      {/* Hero Section - FAANG / Fortune 500 Executive Styling */}
+      <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-28 border-b border-slate-800/80 bg-[#070b14]">
+        {/* Subtle geometric ambient lighting */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-blue-600/15 via-indigo-600/5 to-transparent rounded-[100%] blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b0a_1px,transparent_1px),linear-gradient(to_bottom,#1e293b0a_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none" />
 
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-6">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Career Readiness Framework 1.0</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            
+            {/* Left Column: Magnetic Executive Copy */}
+            <div className="lg:col-span-7 text-left space-y-6">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-400 text-xs font-semibold tracking-wide uppercase">
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                <span>Enterprise AI Benchmark Framework 2026</span>
+              </div>
+
+              {/* Main Headline */}
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-100 tracking-tight leading-[1.1] font-['Space_Grotesk']">
+                AI is reconfiguring the workplace. <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-sky-300">Where do you stand?</span>
+              </h1>
+
+              {/* Subheadline & description */}
+              <p className="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed font-normal">
+                Benchmark your generative AI capabilities, operational workflow fluency, and career defensibility against frameworks calibrated by Fortune 500 technical leaders. Gain a concrete 30-day action plan in under 7 minutes.
+              </p>
+
+              {/* Primary Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+                <button
+                  id="hero-start-assessment-btn"
+                  onClick={onStartAssessment}
+                  className="px-8 py-4 rounded-xl text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition-all shadow-xl shadow-blue-600/30 flex items-center justify-center gap-2 group cursor-pointer"
+                >
+                  <span>Start AI Readiness Assessment</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                {onOpenRegisterModal && (
+                  <button
+                    id="hero-register-webinar-btn"
+                    onClick={onOpenRegisterModal}
+                    className="px-6 py-4 rounded-xl text-sm sm:text-base font-semibold text-amber-300 bg-slate-900/90 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-400 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/5"
+                  >
+                    <Zap className="w-4 h-4 fill-amber-300" />
+                    <span>1-Click Masterclass (Oct 15)</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Live Cohort Micro-stats */}
+              <div className="pt-3 flex flex-wrap items-center gap-5 text-xs text-slate-400 font-medium">
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2 overflow-hidden">
+                    <div className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-900 bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center">KN</div>
+                    <div className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-900 bg-indigo-600 text-[10px] font-bold text-white flex items-center justify-center">AS</div>
+                    <div className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-900 bg-emerald-600 text-[10px] font-bold text-white flex items-center justify-center">VR</div>
+                    <div className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-900 bg-amber-600 text-[10px] font-bold text-white flex items-center justify-center">ML</div>
+                  </div>
+                  <span className="text-slate-200 font-semibold">1,840+ Evaluated</span>
+                </div>
+                <span className="text-slate-600">•</span>
+                <span className="text-slate-300">5 Dimensions</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-slate-300">26 Scenarios</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-slate-300">Deterministic Radar</span>
+              </div>
+            </div>
+
+            {/* Right Column: Interactive FAANG Scorecard Preview Card (Catches Attention Instantly) */}
+            <div className="lg:col-span-5">
+              <div className="bg-[#0e1628]/95 border border-slate-700/80 rounded-2xl p-6 sm:p-7 shadow-2xl shadow-blue-950/40 relative overflow-hidden backdrop-blur-xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-100 uppercase tracking-wider">
+                        Executive Benchmark Sample
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Senior Professional • IT & Enterprise
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    84 / 100
+                  </span>
+                </div>
+
+                {/* Dimension Breakdown Bars */}
+                <div className="space-y-3.5 mb-5">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1 font-medium">
+                      <span className="text-slate-300">AI Literacy & Core Concepts</span>
+                      <span className="text-blue-400 font-mono">88%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-blue-500 h-full rounded-full w-[88%]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1 font-medium">
+                      <span className="text-slate-300">Prompt Fluency & Tool Usage</span>
+                      <span className="text-indigo-400 font-mono">82%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-indigo-500 h-full rounded-full w-[82%]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1 font-medium">
+                      <span className="text-slate-300">Domain Workflow Integration</span>
+                      <span className="text-sky-400 font-mono">90%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-sky-400 h-full rounded-full w-[90%]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1 font-medium">
+                      <span className="text-slate-300">Career & Cognitive Adaptability</span>
+                      <span className="text-violet-400 font-mono">78%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-violet-400 h-full rounded-full w-[78%]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs mb-1 font-medium">
+                      <span className="text-slate-300">Proof of Applied Work (Portfolio)</span>
+                      <span className="text-emerald-400 font-mono">84%</span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div className="bg-emerald-400 h-full rounded-full w-[84%]" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Insight Preview */}
+                <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 text-left mb-4">
+                  <div className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Key Competitive Advantage</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Strong capability in automating routine analytical tasks and integrating LLMs into existing engineering stacks with high accuracy.
+                  </p>
+                </div>
+
+                <button
+                  onClick={onStartAssessment}
+                  className="w-full py-2.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Evaluate Your Own Profile</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
           </div>
 
-          {/* Main Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-100 tracking-tight leading-[1.15] max-w-4xl mx-auto uppercase font-['Space_Grotesk']">
-            AI is changing the workplace.
-          </h1>
-
-          {/* Subheadline */}
-          <h2 className="mt-4 text-xl sm:text-2xl font-medium text-slate-200 max-w-2xl mx-auto leading-snug">
-            How ready are you to learn, adapt, and create value in the intelligent workplace?
-          </h2>
-
-          {/* Description */}
-          <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            This self-assessment benchmarks your AI competencies across 5 core dimensions against enterprise standards from leading tech companies. An executive blueprint for career acceleration.
-          </p>
-
-          {/* CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              id="hero-start-assessment-btn"
-              onClick={onStartAssessment}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-lg text-base font-semibold text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.99] transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 group cursor-pointer"
-            >
-              <span>Start My AI Readiness Assessment</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {onOpenRegisterModal && (
-              <button
-                id="hero-register-webinar-btn"
-                onClick={onOpenRegisterModal}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-lg text-base font-semibold text-yellow-300 bg-slate-900/90 hover:bg-slate-800 border border-yellow-500/40 hover:border-yellow-400 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-yellow-500/5"
-              >
-                <Zap className="w-4 h-4 fill-yellow-300" />
-                <span>1-Click Masterclass (Oct 15)</span>
-              </button>
-            )}
-
-            <button
-              id="hero-how-it-works-btn"
-              onClick={scrollToHowItWorks}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-lg text-base font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>How It Works</span>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </button>
-          </div>
-
-          {/* Fortune 500 Benchmark Cohort Ticker */}
-          <div className="mt-10 pt-6 border-t border-slate-800/60">
-            <p className="text-[11px] font-mono uppercase tracking-widest text-slate-400 font-semibold mb-3">
-              Benchmarked Against Enterprise Frameworks & Industry Leaders
+          {/* Fortune 500 / FAANG Trust Bar */}
+          <div className="mt-14 pt-8 border-t border-slate-800/80 text-center">
+            <p className="text-[11px] font-mono uppercase tracking-widest text-slate-400 font-semibold mb-4">
+              Calibrated Against Enterprise Competency Frameworks
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs font-semibold text-slate-300">
-              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-400" /> Google DeepMind AI
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs font-semibold text-slate-300">
+              <span className="px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 flex items-center gap-2 hover:border-slate-700 transition-colors">
+                <span className="w-2 h-2 rounded-full bg-blue-500" /> Google AI & Cloud
               </span>
-              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" /> OpenAI Enterprise
+              <span className="px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 flex items-center gap-2 hover:border-slate-700 transition-colors">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" /> OpenAI Enterprise
               </span>
-              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400" /> AWS GenAI / Bedrock
+              <span className="px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 flex items-center gap-2 hover:border-slate-700 transition-colors">
+                <span className="w-2 h-2 rounded-full bg-amber-500" /> Amazon AWS GenAI
               </span>
-              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" /> Microsoft Azure AI
+              <span className="px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 flex items-center gap-2 hover:border-slate-700 transition-colors">
+                <span className="w-2 h-2 rounded-full bg-cyan-500" /> Microsoft Azure AI
               </span>
-              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-400" /> Meta AI Research
+              <span className="px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 flex items-center gap-2 hover:border-slate-700 transition-colors">
+                <span className="w-2 h-2 rounded-full bg-indigo-500" /> Meta AI Platforms
               </span>
-            </div>
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
-            <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
-              <div className="w-9 h-9 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-                <Award className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">Free self-assessment</h3>
-                <p className="text-xs text-slate-400">Open to all students & professionals</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
-              <div className="w-9 h-9 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">Approximately 5–7 minutes</h3>
-                <p className="text-xs text-slate-400">26 reflective & scenario questions</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
-              <div className="w-9 h-9 rounded-md bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
-                <Shield className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">Personalized readiness report</h3>
-                <p className="text-xs text-slate-400">30-day action plan & radar metrics</p>
-              </div>
+              <span className="px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 flex items-center gap-2 hover:border-slate-700 transition-colors">
+                <span className="w-2 h-2 rounded-full bg-purple-500" /> NVIDIA Enterprise
+              </span>
             </div>
           </div>
         </div>

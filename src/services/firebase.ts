@@ -33,10 +33,12 @@ import {
   AssessmentSubmission,
   LearningConfig,
   PortalNotification,
+  PortalUser,
   UserAccount,
   WebinarConfig,
   WebinarRegistration
 } from '../types/assessment';
+import { detectDeviceAndBrowser } from '../utils/deviceInfo';
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
@@ -145,51 +147,305 @@ export async function logoutUser(): Promise<void> {
 // ==========================================
 // User Profile Service
 // ==========================================
-export async function syncUserProfile(user: FirebaseUser): Promise<UserAccount> {
+export async function syncUserProfile(
+  user: FirebaseUser | PortalUser | { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null; isDirect?: boolean }
+): Promise<UserAccount> {
   const path = `users/${user.uid}`;
+  const device = detectDeviceAndBrowser();
+  const now = new Date().toISOString();
+  const safeEmail = user.email ? user.email.trim() : `learner_${user.uid.slice(0, 8)}@portal.internal`;
+  const isGoogleAdmin = safeEmail.toLowerCase() === 'kapilnarula27july@gmail.com';
+  const role: 'participant' | 'admin' = isGoogleAdmin ? 'admin' : 'participant';
+  const authProvider = (user as any).isDirect ? 'direct' : 'google';
+
   try {
     const userRef = doc(db, 'users', user.uid);
     const existing = await getDoc(userRef);
 
-    const now = new Date().toISOString();
-    const isGoogleAdmin = user.email?.toLowerCase() === 'kapilnarula27july@gmail.com';
-
-    let role: 'participant' | 'admin' = isGoogleAdmin ? 'admin' : 'participant';
+    let finalAccount: UserAccount;
 
     if (existing.exists()) {
       const data = existing.data() as UserAccount;
-      // Preserve existing role if already admin
-      if (data.role === 'admin' || isGoogleAdmin) {
-        role = 'admin';
-      }
-      await updateDoc(userRef, {
-        displayName: user.displayName || data.displayName,
-        photoURL: user.photoURL || data.photoURL,
-        lastLoginAt: now
-      });
-      return {
+      const effectiveRole = data.role === 'admin' || isGoogleAdmin ? 'admin' : 'participant';
+
+      finalAccount = {
         ...data,
-        displayName: user.displayName || data.displayName,
-        photoURL: user.photoURL || data.photoURL,
+        displayName: user.displayName || data.displayName || 'Learner',
+        email: safeEmail,
+        photoURL: user.photoURL || data.photoURL || null,
         lastLoginAt: now,
-        role
+        role: effectiveRole,
+        authProvider: authProvider,
+        deviceType: device.deviceType,
+        browserName: device.browserName,
+        deviceDescription: device.fullDescription
       };
+
+      await updateDoc(userRef, {
+        displayName: finalAccount.displayName,
+        email: finalAccount.email,
+        photoURL: finalAccount.photoURL,
+        lastLoginAt: now,
+        authProvider: finalAccount.authProvider,
+        deviceType: finalAccount.deviceType,
+        browserName: finalAccount.browserName,
+        deviceDescription: finalAccount.deviceDescription
+      });
     } else {
-      const newAccount: UserAccount = {
+      finalAccount = {
         uid: user.uid,
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
+        displayName: user.displayName || 'Learner',
+        email: safeEmail,
+        photoURL: user.photoURL || null,
         role,
         createdAt: now,
-        lastLoginAt: now
+        lastLoginAt: now,
+        authProvider: authProvider,
+        deviceType: device.deviceType,
+        browserName: device.browserName,
+        deviceDescription: device.fullDescription,
+        assessmentStatus: 'not_started'
       };
-      await setDoc(userRef, newAccount);
-      return newAccount;
+
+      await setDoc(userRef, finalAccount);
+
+      // Create admin notification about new learner login from device/browser
+      if (!isGoogleAdmin) {
+        createPortalNotification({
+          notificationId: `user_joined_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          recipientType: 'admin',
+          title: `👤 New Learner Joined: ${finalAccount.displayName}`,
+          message: `${finalAccount.displayName} (${finalAccount.email}) joined via ${authProvider === 'google' ? 'Google' : 'Direct Email'} on ${device.fullDescription}.`,
+          type: 'registration',
+          createdAt: now,
+          read: false,
+          cleared: false,
+          metadata: {
+            uid: finalAccount.uid,
+            email: finalAccount.email,
+            device: device.fullDescription
+          }
+        }).catch(() => {});
+      }
     }
+
+    // Cache user to local storage
+    try {
+      localStorage.setItem('portal_current_user_profile', JSON.stringify(finalAccount));
+    } catch (e) {
+      // ignore
+    }
+
+    return finalAccount;
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    console.warn('Firestore user sync fallback to local cache:', error);
+    const fallbackAccount: UserAccount = {
+      uid: user.uid,
+      displayName: user.displayName || 'Learner',
+      email: safeEmail,
+      photoURL: user.photoURL || null,
+      role,
+      createdAt: now,
+      lastLoginAt: now,
+      authProvider,
+      deviceType: device.deviceType,
+      browserName: device.browserName,
+      deviceDescription: device.fullDescription,
+      assessmentStatus: 'not_started'
+    };
+    try {
+      localStorage.setItem('portal_current_user_profile', JSON.stringify(fallbackAccount));
+    } catch (e) {
+      // ignore
+    }
+    return fallbackAccount;
   }
+}
+
+// ==========================================
+// Comprehensive Learner & User Directory (Admin)
+// ==========================================
+export async function getAllUsers(): Promise<UserAccount[]> {
+  const learnersMap = new Map<string, UserAccount>();
+
+  // 1. Fetch from Firestore users collection
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    snap.forEach((docSnap) => {
+      const u = docSnap.data() as UserAccount;
+      if (u && u.uid) {
+        learnersMap.set(u.uid, u);
+      }
+    });
+  } catch (error) {
+    console.warn('Direct users collection list fallback:', error);
+  }
+
+  // 2. Cross-reference with assessmentSubmissions to ensure ANY learner who submitted an assessment is included
+  try {
+    const submissionsSnap = await getDocs(collection(db, 'assessmentSubmissions'));
+    submissionsSnap.forEach((docSnap) => {
+      const sub = docSnap.data() as AssessmentSubmission;
+      if (sub && sub.uid) {
+        const existing = learnersMap.get(sub.uid);
+        if (existing) {
+          existing.assessmentStatus = 'completed';
+          existing.latestScore = sub.overallScore;
+          existing.latestBand = sub.readinessBand;
+          if (sub.profile?.participantCategory && !existing.participantCategory) {
+            existing.participantCategory = sub.profile.participantCategory;
+          }
+          if (sub.profile?.currentDomain && !existing.domain) {
+            existing.domain = sub.profile.currentDomain;
+          }
+        } else {
+          // Synthesize user entry
+          learnersMap.set(sub.uid, {
+            uid: sub.uid,
+            displayName: sub.userName || sub.profile?.fullName || 'Learner',
+            email: sub.userEmail || sub.profile?.email || '',
+            photoURL: null,
+            role: 'participant',
+            createdAt: sub.submittedAt || new Date().toISOString(),
+            lastLoginAt: sub.submittedAt || new Date().toISOString(),
+            authProvider: 'google',
+            deviceType: 'Desktop',
+            browserName: 'Web Browser',
+            deviceDescription: 'Web Browser',
+            assessmentStatus: 'completed',
+            latestScore: sub.overallScore,
+            latestBand: sub.readinessBand,
+            participantCategory: sub.profile?.participantCategory,
+            domain: sub.profile?.currentDomain
+          });
+        }
+      }
+    });
+  } catch (e) {
+    // ignore
+  }
+
+  // 3. Cross-reference with webinar registrations
+  try {
+    const regsSnap = await getDocs(collection(db, 'webinarRegistrations'));
+    regsSnap.forEach((docSnap) => {
+      const reg = docSnap.data() as WebinarRegistration;
+      if (reg) {
+        const key = reg.uid || reg.email;
+        let matched = Array.from(learnersMap.values()).find(
+          (u) => (reg.uid && u.uid === reg.uid) || (reg.email && u.email?.toLowerCase() === reg.email.toLowerCase())
+        );
+
+        if (matched) {
+          matched.isMasterclassRegistered = true;
+          if (reg.participantCategory && !matched.participantCategory) {
+            matched.participantCategory = reg.participantCategory;
+          }
+        } else if (reg.email) {
+          const synthUid = reg.uid || `reg_${reg.registrationId}`;
+          learnersMap.set(synthUid, {
+            uid: synthUid,
+            displayName: reg.fullName || 'Webinar Attendee',
+            email: reg.email,
+            photoURL: null,
+            role: 'participant',
+            createdAt: reg.registeredAt || new Date().toISOString(),
+            lastLoginAt: reg.registeredAt || new Date().toISOString(),
+            authProvider: 'direct',
+            deviceType: 'Desktop',
+            browserName: 'Web Browser',
+            deviceDescription: 'Web Browser',
+            assessmentStatus: 'not_started',
+            isMasterclassRegistered: true,
+            participantCategory: reg.participantCategory,
+            domain: reg.domain
+          });
+        }
+      }
+    });
+  } catch (e) {
+    // ignore
+  }
+
+  // 4. Merge cached users from localStorage (if any local accounts exist)
+  try {
+    const localUserJson = localStorage.getItem('portal_current_user_profile');
+    if (localUserJson) {
+      const localUser = JSON.parse(localUserJson) as UserAccount;
+      if (localUser && localUser.uid && !learnersMap.has(localUser.uid)) {
+        learnersMap.set(localUser.uid, localUser);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  const result = Array.from(learnersMap.values());
+  // Sort by last active / created descending
+  result.sort((a, b) => {
+    const timeA = new Date(a.lastLoginAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.lastLoginAt || b.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
+
+  // Save cache
+  try {
+    localStorage.setItem('portal_all_learners_cache', JSON.stringify(result));
+  } catch (e) {
+    // ignore
+  }
+
+  return result;
+}
+
+// Export Learners Directory to CSV
+export function exportLearnersCsv(users: UserAccount[]): void {
+  const headers = [
+    'User ID',
+    'Full Name',
+    'Email Address',
+    'Role',
+    'Auth Method',
+    'Device Type',
+    'Browser / OS',
+    'Assessment Status',
+    'Readiness Score',
+    'Readiness Band',
+    'Masterclass RSVP',
+    'Category',
+    'Domain',
+    'Joined Date',
+    'Last Active'
+  ];
+
+  const rows = users.map((u) => [
+    `"${u.uid || ''}"`,
+    `"${(u.displayName || 'Learner').replace(/"/g, '""')}"`,
+    `"${(u.email || '').replace(/"/g, '""')}"`,
+    `"${u.role || 'participant'}"`,
+    `"${u.authProvider || 'google'}"`,
+    `"${u.deviceType || 'Desktop'}"`,
+    `"${(u.deviceDescription || u.browserName || '').replace(/"/g, '""')}"`,
+    `"${u.assessmentStatus || 'not_started'}"`,
+    `"${u.latestScore !== undefined ? u.latestScore : 'N/A'}"`,
+    `"${u.latestBand || 'N/A'}"`,
+    `"${u.isMasterclassRegistered ? 'Yes (Confirmed)' : 'No'}"`,
+    `"${(u.participantCategory || '').replace(/"/g, '""')}"`,
+    `"${(u.domain || '').replace(/"/g, '""')}"`,
+    `"${u.createdAt ? new Date(u.createdAt).toLocaleString() : ''}"`,
+    `"${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : ''}"`
+  ]);
+
+  const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `Learners_Directory_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 // ==========================================
@@ -202,6 +458,46 @@ export async function saveAssessmentSubmission(
   try {
     const docRef = doc(db, 'assessmentSubmissions', submission.submissionId);
     await setDoc(docRef, submission);
+
+    // Synchronize to users/{uid}
+    if (submission.uid) {
+      try {
+        const userRef = doc(db, 'users', submission.uid);
+        await updateDoc(userRef, {
+          assessmentStatus: 'completed',
+          latestScore: submission.overallScore,
+          latestBand: submission.readinessBand,
+          participantCategory: submission.profile?.participantCategory || 'Working professional',
+          domain: submission.profile?.currentDomain || 'General',
+          lastLoginAt: submission.submittedAt
+        }).catch(() => {});
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Trigger Admin Notification
+    try {
+      createPortalNotification({
+        notificationId: `sub_done_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        recipientType: 'admin',
+        title: `🎯 Assessment Completed: ${submission.userName || 'Learner'}`,
+        message: `${submission.userName} (${submission.userEmail}) scored ${submission.overallScore}/100 (${submission.readinessBand}).`,
+        type: 'assessment',
+        createdAt: submission.submittedAt,
+        read: false,
+        cleared: false,
+        metadata: {
+          submissionId: submission.submissionId,
+          score: submission.overallScore,
+          band: submission.readinessBand,
+          email: submission.userEmail
+        }
+      }).catch(() => {});
+    } catch (e) {
+      // ignore
+    }
+
     return submission.submissionId;
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
@@ -366,6 +662,21 @@ export async function registerForWebinar(registration: WebinarRegistration): Pro
   try {
     const docRef = doc(db, 'webinarRegistrations', registration.registrationId);
     await setDoc(docRef, registration);
+
+    // Update user record with masterclass registration status
+    if (registration.uid) {
+      try {
+        const userRef = doc(db, 'users', registration.uid);
+        await updateDoc(userRef, {
+          isMasterclassRegistered: true,
+          participantCategory: registration.participantCategory || 'Working professional',
+          domain: registration.domain || 'General',
+          lastLoginAt: registration.registeredAt
+        }).catch(() => {});
+      } catch (e) {
+        // ignore
+      }
+    }
 
     // Save to local cache as fallback
     try {
