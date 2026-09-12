@@ -1,0 +1,153 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 200 },
+        "email": { "type": "string", "maxLength": 254 },
+        "photoURL": { "type": "string", "maxLength": 2048 },
+        "role": { "type": "string", "enum": ["participant", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLoginAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "AssessmentSubmission": {
+      "title": "AssessmentSubmission",
+      "description": "Individual self-assessment submission record",
+      "type": "object",
+      "properties": {
+        "submissionId": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "assessmentVersion": { "type": "string", "maxLength": 32 },
+        "scoringVersion": { "type": "string", "maxLength": 32 },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "profile": { "type": "object" },
+        "responses": { "type": "object" },
+        "dimensionScores": { "type": "object" },
+        "overallScore": { "type": "number" },
+        "readinessBand": { "type": "string", "maxLength": 64 },
+        "generatedInsights": { "type": "object" },
+        "consent": { "type": "boolean" },
+        "source": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["completed", "in_progress"] }
+      },
+      "required": ["submissionId", "uid", "assessmentVersion", "submittedAt", "overallScore", "readinessBand", "status"]
+    },
+    "AssessmentQuestion": {
+      "title": "AssessmentQuestion",
+      "description": "Configurable question item in assessment bank",
+      "type": "object",
+      "properties": {
+        "questionId": { "type": "string", "maxLength": 64 },
+        "assessmentVersion": { "type": "string", "maxLength": 32 },
+        "dimension": { "type": "string", "maxLength": 64 },
+        "questionText": { "type": "string", "maxLength": 1000 },
+        "questionType": { "type": "string", "enum": ["single_choice", "scale", "scenario", "multi_select"] },
+        "options": { "type": "array" },
+        "scoringMap": { "type": "object" },
+        "explanation": { "type": "string", "maxLength": 1000 },
+        "weight": { "type": "number" },
+        "required": { "type": "boolean" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["questionId", "dimension", "questionText", "questionType", "weight", "active"]
+    },
+    "AssessmentConfig": {
+      "title": "AssessmentConfig",
+      "description": "System settings for assessment parameters and scoring",
+      "type": "object",
+      "properties": {
+        "assessmentVersion": { "type": "string", "maxLength": 32 },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "estimatedMinutes": { "type": "number" },
+        "dimensionWeights": { "type": "object" },
+        "scoreBands": { "type": "array" },
+        "retakesEnabled": { "type": "boolean" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["assessmentVersion", "title", "retakesEnabled", "active"]
+    },
+    "WebinarConfig": {
+      "title": "WebinarConfig",
+      "description": "Webinar call to action banner configuration",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 64 },
+        "time": { "type": "string", "maxLength": 64 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "registrationUrl": { "type": "string", "maxLength": 1000 },
+        "speaker": { "type": "string", "maxLength": 200 },
+        "partner": { "type": "string", "maxLength": 200 },
+        "ctaEnabled": { "type": "boolean" }
+      },
+      "required": ["title", "ctaEnabled"]
+    },
+    "LearningConfig": {
+      "title": "LearningConfig",
+      "description": "Learning path recommendation configuration",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "learningUrl": { "type": "string", "maxLength": 1000 },
+        "ctaLabel": { "type": "string", "maxLength": 100 },
+        "ctaEnabled": { "type": "boolean" }
+      },
+      "required": ["title", "ctaEnabled"]
+    },
+    "AdminAuditLog": {
+      "title": "AdminAuditLog",
+      "description": "Audit trail log of admin operations",
+      "type": "object",
+      "properties": {
+        "adminUid": { "type": "string", "maxLength": 128 },
+        "adminEmail": { "type": "string", "maxLength": 254 },
+        "action": { "type": "string", "maxLength": 100 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["adminUid", "action", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile records indexed by auth UID"
+    },
+    "/assessmentSubmissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/AssessmentSubmission" },
+      "description": "User assessment submissions"
+    },
+    "/assessmentQuestions/{questionId}": {
+      "schema": { "$ref": "#/entities/AssessmentQuestion" },
+      "description": "Assessment question bank"
+    },
+    "/assessmentConfigs/{configId}": {
+      "schema": { "$ref": "#/entities/AssessmentConfig" },
+      "description": "Assessment metadata and scoring weight configs"
+    },
+    "/webinarConfig/{configId}": {
+      "schema": { "$ref": "#/entities/WebinarConfig" },
+      "description": "Webinar CTA announcement details"
+    },
+    "/learningConfig/{configId}": {
+      "schema": { "$ref": "#/entities/LearningConfig" },
+      "description": "Learning pathway recommendations CTA"
+    },
+    "/adminAuditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AdminAuditLog" },
+      "description": "Audit trail entries for administrative actions"
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Allowlisted administrator UIDs"
+    }
+  }
+}

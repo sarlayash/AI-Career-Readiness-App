@@ -1,0 +1,6 @@
+{
+  "name": "AI Career Readiness Self-Assessment Portal",
+  "description": "A comprehensive, data-driven self-assessment platform evaluating AI literacy, tool fluency, domain application, adaptability, and professional evidence of work.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

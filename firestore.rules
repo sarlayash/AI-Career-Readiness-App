@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny catch-all (Pillar 1)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == "kapilnarula27july@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) &&
+        request.resource.data.keys().hasAll(['uid', 'email', 'role']) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.role == 'participant';
+      allow update: if isOwner(userId) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.role == resource.data.role; // Prevent role escalation
+      allow delete: if isAdmin();
+    }
+
+    // Admin Allowlist Collection
+    match /admins/{adminUid} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Assessment Submissions Collection
+    match /assessmentSubmissions/{submissionId} {
+      allow get: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.uid == request.auth.uid
+      );
+      allow create: if isSignedIn() &&
+        isValidId(submissionId) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.keys().hasAll(['submissionId', 'uid', 'assessmentVersion', 'overallScore', 'readinessBand', 'status']) &&
+        request.resource.data.overallScore is number &&
+        request.resource.data.overallScore >= 0 &&
+        request.resource.data.overallScore <= 100;
+      allow update: if isAdmin() || (
+        isOwner(resource.data.uid) &&
+        resource.data.status != 'completed' &&
+        request.resource.data.uid == request.auth.uid
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Assessment Questions Bank (Public read for authenticated users, Admin managed)
+    match /assessmentQuestions/{questionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Assessment Configs
+    match /assessmentConfigs/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Webinar Configuration
+    match /webinarConfig/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Learning Configuration
+    match /learningConfig/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Admin Audit Logs
+    match /adminAuditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.adminUid == request.auth.uid;
+      allow update, delete: if false; // Audit logs are append-only
+    }
+  }
+}
