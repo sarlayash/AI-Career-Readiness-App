@@ -114,6 +114,46 @@
         "metadata": { "type": "object" }
       },
       "required": ["adminUid", "action", "timestamp"]
+    },
+    "WebinarRegistration": {
+      "title": "WebinarRegistration",
+      "description": "Attendee registration record for live webinar",
+      "type": "object",
+      "properties": {
+        "registrationId": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 200 },
+        "email": { "type": "string", "maxLength": 254 },
+        "participantCategory": { "type": "string", "maxLength": 100 },
+        "domain": { "type": "string", "maxLength": 100 },
+        "webinarTitle": { "type": "string", "maxLength": 200 },
+        "webinarDate": { "type": "string", "maxLength": 64 },
+        "registeredAt": { "type": "string", "format": "date-time" },
+        "calendarAdded": { "type": "boolean" },
+        "remindersEnabled": { "type": "boolean" },
+        "remindersSent": { "type": "number" },
+        "status": { "type": "string", "enum": ["confirmed", "cancelled"] }
+      },
+      "required": ["registrationId", "email", "webinarTitle", "registeredAt", "status"]
+    },
+    "PortalNotification": {
+      "title": "PortalNotification",
+      "description": "In-app and push notification event for admin or learner",
+      "type": "object",
+      "properties": {
+        "notificationId": { "type": "string", "maxLength": 128 },
+        "recipientType": { "type": "string", "enum": ["admin", "learner", "all"] },
+        "recipientUid": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "type": { "type": "string", "enum": ["registration", "reminder", "assessment", "system"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" },
+        "cleared": { "type": "boolean" },
+        "actionUrl": { "type": "string", "maxLength": 500 },
+        "metadata": { "type": "object" }
+      },
+      "required": ["notificationId", "recipientType", "title", "message", "type", "createdAt"]
     }
   },
   "firestore": {
@@ -148,6 +188,14 @@
     "/admins/{adminUid}": {
       "schema": { "$ref": "#/entities/User" },
       "description": "Allowlisted administrator UIDs"
+    },
+    "/webinarRegistrations/{registrationId}": {
+      "schema": { "$ref": "#/entities/WebinarRegistration" },
+      "description": "Webinar registration entries for attendees"
+    },
+    "/portalNotifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/PortalNotification" },
+      "description": "In-app and push notification log"
     }
   }
 }

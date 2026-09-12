@@ -156,3 +156,34 @@ export interface UserAccount {
   createdAt: string;
   lastLoginAt: string;
 }
+
+export interface WebinarRegistration {
+  registrationId: string;
+  uid?: string;
+  fullName: string;
+  email: string;
+  participantCategory?: string;
+  domain?: string;
+  webinarTitle: string;
+  webinarDate: string;
+  registeredAt: string;
+  calendarAdded?: boolean;
+  remindersEnabled?: boolean;
+  remindersSent?: number;
+  status: 'confirmed' | 'cancelled';
+}
+
+export interface PortalNotification {
+  notificationId: string;
+  recipientType: 'admin' | 'learner' | 'all';
+  recipientUid?: string;
+  title: string;
+  message: string;
+  type: 'registration' | 'reminder' | 'assessment' | 'system';
+  createdAt: string;
+  read: boolean;
+  cleared?: boolean;
+  actionUrl?: string;
+  metadata?: Record<string, any>;
+}
+

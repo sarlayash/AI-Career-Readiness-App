@@ -14,10 +14,13 @@ import {
   ExternalLink,
   CheckCircle2,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Zap,
+  Star
 } from 'lucide-react';
 import { DIMENSIONS } from '../config/defaultConfigs';
-import { AssessmentConfig, LearningConfig, WebinarConfig } from '../types/assessment';
+import { AssessmentConfig, LearningConfig, WebinarConfig, WebinarRegistration } from '../types/assessment';
+import { FeaturedWebinarBanner } from './FeaturedWebinarBanner';
 
 interface LandingPageProps {
   config: AssessmentConfig;
@@ -25,6 +28,9 @@ interface LandingPageProps {
   learningConfig: LearningConfig | null;
   onStartAssessment: () => void;
   onNavigate: (route: string) => void;
+  onOpenRegisterModal?: () => void;
+  onOpenEmailHub?: () => void;
+  userRegistration?: WebinarRegistration | null;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -32,7 +38,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   webinarConfig,
   learningConfig,
   onStartAssessment,
-  onNavigate
+  onNavigate,
+  onOpenRegisterModal,
+  onOpenEmailHub,
+  userRegistration
 }) => {
   const scrollToHowItWorks = () => {
     const el = document.getElementById('how-it-works-section');
@@ -69,13 +78,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </h1>
 
           {/* Subheadline */}
-          <h2 className="mt-4 text-xl sm:text-2xl font-medium text-slate-300 max-w-2xl mx-auto leading-snug">
+          <h2 className="mt-4 text-xl sm:text-2xl font-medium text-slate-200 max-w-2xl mx-auto leading-snug">
             How ready are you to learn, adapt, and create value in the intelligent workplace?
           </h2>
 
           {/* Description */}
-          <p className="mt-5 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            This self-assessment helps you understand your current AI readiness across essential career dimensions. It is not an exam. It is a starting point for your next learning decision.
+          <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            This self-assessment benchmarks your AI competencies across 5 core dimensions against enterprise standards from leading tech companies. An executive blueprint for career acceleration.
           </p>
 
           {/* CTAs */}
@@ -89,6 +98,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
 
+            {onOpenRegisterModal && (
+              <button
+                id="hero-register-webinar-btn"
+                onClick={onOpenRegisterModal}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-lg text-base font-semibold text-yellow-300 bg-slate-900/90 hover:bg-slate-800 border border-yellow-500/40 hover:border-yellow-400 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-yellow-500/5"
+              >
+                <Zap className="w-4 h-4 fill-yellow-300" />
+                <span>1-Click Masterclass (Oct 15)</span>
+              </button>
+            )}
+
             <button
               id="hero-how-it-works-btn"
               onClick={scrollToHowItWorks}
@@ -99,9 +119,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
 
+          {/* Fortune 500 Benchmark Cohort Ticker */}
+          <div className="mt-10 pt-6 border-t border-slate-800/60">
+            <p className="text-[11px] font-mono uppercase tracking-widest text-slate-400 font-semibold mb-3">
+              Benchmarked Against Enterprise Frameworks & Industry Leaders
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs font-semibold text-slate-300">
+              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-400" /> Google DeepMind AI
+              </span>
+              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" /> OpenAI Enterprise
+              </span>
+              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400" /> AWS GenAI / Bedrock
+              </span>
+              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" /> Microsoft Azure AI
+              </span>
+              <span className="px-3 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-400" /> Meta AI Research
+              </span>
+            </div>
+          </div>
+
           {/* Trust Indicators */}
-          <div className="mt-12 pt-8 border-t border-slate-800/60 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto text-left">
-            <div className="flex items-center gap-3 bg-slate-900/40 p-3 rounded-lg border border-slate-800/50">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+            <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
               <div className="w-9 h-9 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
                 <Award className="w-4 h-4" />
               </div>
@@ -111,7 +155,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-slate-900/40 p-3 rounded-lg border border-slate-800/50">
+            <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
               <div className="w-9 h-9 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
@@ -121,7 +165,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-slate-900/40 p-3 rounded-lg border border-slate-800/50">
+            <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
               <div className="w-9 h-9 rounded-md bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
                 <Shield className="w-4 h-4" />
               </div>
@@ -134,42 +178,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* Webinar Spotlight Banner (if enabled) */}
-      {webinarConfig && webinarConfig.ctaEnabled && (
-        <section className="bg-gradient-to-r from-blue-950/50 via-indigo-950/40 to-slate-900 border-b border-blue-900/30 py-5 px-4 sm:px-6">
-          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0 mt-0.5">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
-                    Featured Webinar
-                  </span>
-                  <span className="text-xs text-slate-400">{webinarConfig.date} • {webinarConfig.time}</span>
-                </div>
-                <h4 className="text-sm font-semibold text-slate-100 mt-1">
-                  {webinarConfig.title}
-                </h4>
-                <p className="text-xs text-slate-300 mt-0.5 max-w-xl">
-                  {webinarConfig.description}
-                </p>
-              </div>
-            </div>
-            <a
-              id="webinar-register-link"
-              href={webinarConfig.registrationUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors shrink-0 shadow-sm"
-            >
-              <span>Register Free</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </section>
-      )}
+      {/* Featured Masterclass Banner with 1-Click Registration, Live Push Notification & Reminders */}
+      <FeaturedWebinarBanner
+        webinarConfig={webinarConfig}
+        onOpenRegisterModal={onOpenRegisterModal || (() => {})}
+        onOpenEmailHub={onOpenEmailHub || (() => {})}
+        userRegistration={userRegistration || null}
+      />
 
       {/* 5 Dimensions Grid */}
       <section className="py-16 md:py-24 bg-[#090e1a] border-b border-slate-800/80">

@@ -12,8 +12,10 @@ import { AdminLoginModal } from './components/AdminLoginModal';
 import { PrivacyNotice } from './components/PrivacyNotice';
 import { LoginPage } from './components/LoginPage';
 import { DEFAULT_ASSESSMENT_CONFIG, DEFAULT_LEARNING_CONFIG, DEFAULT_WEBINAR_CONFIG } from './config/defaultConfigs';
-import { AssessmentConfig, AssessmentSubmission, LearningConfig, UserProfile, WebinarConfig } from './types/assessment';
-import { getAssessmentConfig, getLearningConfig, getWebinarConfig } from './services/firebase';
+import { AssessmentConfig, AssessmentSubmission, LearningConfig, UserProfile, WebinarConfig, WebinarRegistration } from './types/assessment';
+import { getAssessmentConfig, getLearningConfig, getWebinarConfig, getUserWebinarRegistration } from './services/firebase';
+import { OneClickRegisterModal } from './components/OneClickRegisterModal';
+import { EmailRemindersModal } from './components/EmailRemindersModal';
 
 const AppContent: React.FC = () => {
   const { user, latestSubmission, hasCompletedAssessment } = useAuth();
@@ -37,6 +39,34 @@ const AppContent: React.FC = () => {
 
   // Admin login modal toggle
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+
+  // 1-Click Masterclass & Email Reminders state
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [emailRemindersModalOpen, setEmailRemindersModalOpen] = useState(false);
+  const [userRegistration, setUserRegistration] = useState<WebinarRegistration | null>(null);
+
+  // Check user registration on mount or user switch
+  useEffect(() => {
+    const checkReg = async () => {
+      const email = user?.email || localStorage.getItem('portal_user_email');
+      if (email) {
+        const reg = await getUserWebinarRegistration(email);
+        if (reg) {
+          setUserRegistration(reg);
+        }
+      }
+    };
+    checkReg();
+
+    // Listen for cross-component registration updates
+    const handleRegUpdate = (e: any) => {
+      if (e.detail) {
+        setUserRegistration(e.detail);
+      }
+    };
+    window.addEventListener('portal_user_registered', handleRegUpdate);
+    return () => window.removeEventListener('portal_user_registered', handleRegUpdate);
+  }, [user]);
 
   // Load configs on mount
   const loadConfigs = async () => {
@@ -117,6 +147,8 @@ const AppContent: React.FC = () => {
         currentRoute={currentRoute}
         onNavigate={navigateTo}
         onOpenAdminLogin={() => setAdminModalOpen(true)}
+        onOpenRegisterModal={() => setRegisterModalOpen(true)}
+        onOpenEmailReminders={() => setEmailRemindersModalOpen(true)}
       />
 
       {/* Main View Area */}
@@ -129,6 +161,9 @@ const AppContent: React.FC = () => {
             learningConfig={learningConfig}
             onStartAssessment={handleStartAssessment}
             onNavigate={navigateTo}
+            onOpenRegisterModal={() => setRegisterModalOpen(true)}
+            onOpenEmailHub={() => setEmailRemindersModalOpen(true)}
+            userRegistration={userRegistration}
           />
         )}
 
@@ -216,6 +251,7 @@ const AppContent: React.FC = () => {
             webinarConfig={webinarConfig}
             learningConfig={learningConfig}
             onRefreshConfig={loadConfigs}
+            onOpenEmailHub={() => setEmailRemindersModalOpen(true)}
           />
         )}
 
@@ -237,6 +273,25 @@ const AppContent: React.FC = () => {
       <Footer
         onNavigate={navigateTo}
         onOpenAdminLogin={() => setAdminModalOpen(true)}
+      />
+
+      {/* 1-Click Webinar Masterclass Registration Modal */}
+      <OneClickRegisterModal
+        isOpen={registerModalOpen}
+        onClose={() => setRegisterModalOpen(false)}
+        webinarConfig={webinarConfig}
+        onSuccess={(reg) => {
+          setUserRegistration(reg);
+        }}
+        onOpenEmailHub={() => setEmailRemindersModalOpen(true)}
+      />
+
+      {/* Professional Email & Weekly Reminders Hub Modal */}
+      <EmailRemindersModal
+        isOpen={emailRemindersModalOpen}
+        onClose={() => setEmailRemindersModalOpen(false)}
+        userEmail={user?.email || userRegistration?.email}
+        userName={user?.displayName || userRegistration?.fullName}
       />
 
       {/* Admin Login Modal */}

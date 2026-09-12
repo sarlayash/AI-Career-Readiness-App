@@ -99,5 +99,24 @@ service cloud.firestore {
       allow create: if isAdmin() && request.resource.data.adminUid == request.auth.uid;
       allow update, delete: if false; // Audit logs are append-only
     }
+
+    // Webinar Registrations Collection
+    match /webinarRegistrations/{registrationId} {
+      allow get: if true;
+      allow list: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if request.resource.data.keys().hasAll(['registrationId', 'email', 'webinarTitle', 'registeredAt', 'status']) &&
+        request.resource.data.email is string &&
+        request.resource.data.email.size() > 3;
+      allow update: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Portal Notifications Collection (Admin & Learner alerts)
+    match /portalNotifications/{notificationId} {
+      allow get, list: if true; // Filtered on client by recipientUid or recipientType
+      allow create: if true; // System / applet generated notification events
+      allow update: if true; // Mark as read or cleared
+      allow delete: if isAdmin() || isSignedIn();
+    }
   }
 }

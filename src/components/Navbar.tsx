@@ -10,16 +10,27 @@ import {
   Menu, 
   X, 
   Sparkles,
-  Lock
+  Lock,
+  Zap,
+  Mail
 } from 'lucide-react';
+import { NotificationCenter } from './NotificationCenter';
 
 interface NavbarProps {
   currentRoute: string;
   onNavigate: (route: string) => void;
   onOpenAdminLogin: () => void;
+  onOpenRegisterModal?: () => void;
+  onOpenEmailReminders?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpenAdminLogin }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  currentRoute, 
+  onNavigate, 
+  onOpenAdminLogin,
+  onOpenRegisterModal,
+  onOpenEmailReminders
+}) => {
   const { user, isAdmin, hasCompletedAssessment, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -81,6 +92,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpen
               Take Assessment
             </button>
 
+            {/* Featured Masterclass 1-Click Quick CTA in Header */}
+            {onOpenRegisterModal && (
+              <button
+                id="nav-webinar-quick-register-btn"
+                onClick={onOpenRegisterModal}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-blue-400"
+              >
+                <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                <span>Oct 15 Masterclass (1-Click)</span>
+              </button>
+            )}
+
             {hasCompletedAssessment && (
               <>
                 <button
@@ -139,12 +162,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpen
 
           {/* Desktop Right Side / Auth */}
           <div className="hidden md:flex items-center space-x-3">
+            {/* Notification Center */}
+            <NotificationCenter 
+              onOpenEmailReminders={onOpenEmailReminders}
+              onNavigate={handleNav}
+            />
+
             {!isAdmin && (
               <button
                 id="admin-access-lock-btn"
                 onClick={onOpenAdminLogin}
                 title="Admin Staff Login"
-                className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-md transition-colors text-xs flex items-center gap-1"
+                className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-md transition-colors text-xs flex items-center gap-1 cursor-pointer"
               >
                 <Lock className="w-3.5 h-3.5" />
                 <span className="text-[11px]">Staff Access</span>
@@ -181,7 +210,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpen
                   id="user-logout-btn"
                   onClick={logout}
                   title="Sign Out"
-                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800/60 rounded-md transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800/60 rounded-md transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -190,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpen
               <button
                 id="header-login-btn"
                 onClick={() => handleNav('/login')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-sm cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 Sign In
@@ -200,6 +229,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpen
 
           {/* Mobile menu button */}
           <div className="flex md:hidden items-center gap-2">
+            <NotificationCenter 
+              onOpenEmailReminders={onOpenEmailReminders}
+              onNavigate={handleNav}
+            />
+
             {user && (
               <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs text-white">
                 {(user.displayName || 'U').charAt(0).toUpperCase()}
@@ -218,7 +252,21 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpen
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#0e1628] border-b border-slate-800 px-4 pt-2 pb-4 space-y-1">
+        <div className="md:hidden bg-[#0e1628] border-b border-slate-800 px-4 pt-2 pb-4 space-y-2">
+          {onOpenRegisterModal && (
+            <button
+              id="mobile-nav-webinar-btn"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenRegisterModal();
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-xs font-bold text-yellow-300 bg-blue-950/70 border border-blue-500/40 flex items-center gap-2"
+            >
+              <Zap className="w-4 h-4 fill-yellow-300" />
+              <span>Oct 15 Masterclass (1-Click Register)</span>
+            </button>
+          )}
+
           <button
             id="mobile-nav-home"
             onClick={() => handleNav('/')}
@@ -252,6 +300,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, onNavigate, onOpen
               </button>
             </>
           )}
+
+          {onOpenEmailReminders && (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenEmailReminders();
+              }}
+              className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-blue-400 hover:bg-slate-800 flex items-center gap-2"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Email & Weekly Reminders Hub</span>
+            </button>
+          )}
+
           <button
             id="mobile-nav-admin"
             onClick={() => handleNav('/admin')}

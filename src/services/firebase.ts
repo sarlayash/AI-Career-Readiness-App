@@ -12,6 +12,7 @@ import {
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocFromServer,
@@ -31,8 +32,10 @@ import {
   AssessmentConfig,
   AssessmentSubmission,
   LearningConfig,
+  PortalNotification,
   UserAccount,
-  WebinarConfig
+  WebinarConfig,
+  WebinarRegistration
 } from '../types/assessment';
 
 // Initialize Firebase App
@@ -354,3 +357,263 @@ export async function getLearningConfig(): Promise<LearningConfig | null> {
     return null;
   }
 }
+
+// ==========================================
+// Webinar Registrations Service
+// ==========================================
+export async function registerForWebinar(registration: WebinarRegistration): Promise<WebinarRegistration> {
+  const path = `webinarRegistrations/${registration.registrationId}`;
+  try {
+    const docRef = doc(db, 'webinarRegistrations', registration.registrationId);
+    await setDoc(docRef, registration);
+
+    // Save to local cache as fallback
+    try {
+      const stored = JSON.parse(localStorage.getItem('portal_webinar_registrations') || '[]');
+      stored.unshift(registration);
+      localStorage.setItem('portal_webinar_registrations', JSON.stringify(stored.slice(0, 100)));
+    } catch (e) {
+      // ignore localStorage quota
+    }
+
+    return registration;
+  } catch (error) {
+    // If Firestore write fails, persist locally
+    console.warn('Firestore webinar write fallback to localStorage:', error);
+    try {
+      const stored = JSON.parse(localStorage.getItem('portal_webinar_registrations') || '[]');
+      stored.unshift(registration);
+      localStorage.setItem('portal_webinar_registrations', JSON.stringify(stored.slice(0, 100)));
+    } catch (e) {
+      // ignore
+    }
+    return registration;
+  }
+}
+
+export async function getAllWebinarRegistrations(): Promise<WebinarRegistration[]> {
+  try {
+    const snap = await getDocs(collection(db, 'webinarRegistrations'));
+    const list: WebinarRegistration[] = [];
+    snap.forEach((docSnap) => {
+      list.push(docSnap.data() as WebinarRegistration);
+    });
+    
+    // Merge with local storage if any
+    try {
+      const stored: WebinarRegistration[] = JSON.parse(localStorage.getItem('portal_webinar_registrations') || '[]');
+      for (const item of stored) {
+        if (!list.some(r => r.registrationId === item.registrationId || r.email === item.email)) {
+          list.push(item);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    list.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
+    return list;
+  } catch (error) {
+    console.warn('Failed to fetch webinar registrations from Firestore, using local fallback:', error);
+    try {
+      const stored: WebinarRegistration[] = JSON.parse(localStorage.getItem('portal_webinar_registrations') || '[]');
+      return stored;
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+export async function getUserWebinarRegistration(emailOrUid: string): Promise<WebinarRegistration | null> {
+  if (!emailOrUid) return null;
+  try {
+    const all = await getAllWebinarRegistrations();
+    const found = all.find(r => r.email.toLowerCase() === emailOrUid.toLowerCase() || r.uid === emailOrUid);
+    return found || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ==========================================
+// Portal Notifications Service
+// ==========================================
+export async function createPortalNotification(notification: PortalNotification): Promise<PortalNotification> {
+  const path = `portalNotifications/${notification.notificationId}`;
+  try {
+    const docRef = doc(db, 'portalNotifications', notification.notificationId);
+    await setDoc(docRef, notification);
+
+    // Save to local cache
+    try {
+      const stored = JSON.parse(localStorage.getItem('portal_notifications') || '[]');
+      stored.unshift(notification);
+      localStorage.setItem('portal_notifications', JSON.stringify(stored.slice(0, 100)));
+    } catch (e) {
+      // ignore
+    }
+    return notification;
+  } catch (error) {
+    console.warn('Notification write fallback to local storage:', error);
+    try {
+      const stored = JSON.parse(localStorage.getItem('portal_notifications') || '[]');
+      stored.unshift(notification);
+      localStorage.setItem('portal_notifications', JSON.stringify(stored.slice(0, 100)));
+    } catch (e) {
+      // ignore
+    }
+    return notification;
+  }
+}
+
+export async function getNotificationsForUser(uid?: string, email?: string, isAdmin: boolean = false): Promise<PortalNotification[]> {
+  try {
+    const snap = await getDocs(collection(db, 'portalNotifications'));
+    const list: PortalNotification[] = [];
+    snap.forEach((docSnap) => {
+      list.push(docSnap.data() as PortalNotification);
+    });
+
+    // Merge with local notifications
+    try {
+      const stored: PortalNotification[] = JSON.parse(localStorage.getItem('portal_notifications') || '[]');
+      for (const item of stored) {
+        if (!list.some(n => n.notificationId === item.notificationId)) {
+          list.push(item);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Filter relevant notifications
+    const filtered = list.filter(n => {
+      if (n.cleared) return false;
+      if (isAdmin) return true; // Admins can see all notifications
+      if (n.recipientType === 'all') return true;
+      if (uid && n.recipientUid === uid) return true;
+      if (email && n.metadata?.attendeeEmail && n.metadata.attendeeEmail.toLowerCase() === email.toLowerCase()) return true;
+      return false;
+    });
+
+    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return filtered;
+  } catch (error) {
+    console.warn('Failed to load notifications from Firestore, using local cache:', error);
+    try {
+      const stored: PortalNotification[] = JSON.parse(localStorage.getItem('portal_notifications') || '[]');
+      return stored.filter(n => !n.cleared);
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+export async function markNotificationAsRead(notificationId: string): Promise<void> {
+  try {
+    const docRef = doc(db, 'portalNotifications', notificationId);
+    await updateDoc(docRef, { read: true });
+  } catch (e) {
+    // ignore
+  }
+
+  try {
+    const stored: PortalNotification[] = JSON.parse(localStorage.getItem('portal_notifications') || '[]');
+    const updated = stored.map(n => n.notificationId === notificationId ? { ...n, read: true } : n);
+    localStorage.setItem('portal_notifications', JSON.stringify(updated));
+  } catch (e) {
+    // ignore
+  }
+}
+
+export async function clearPortalNotification(notificationId: string): Promise<void> {
+  try {
+    const docRef = doc(db, 'portalNotifications', notificationId);
+    await updateDoc(docRef, { cleared: true });
+  } catch (e) {
+    // ignore
+  }
+
+  try {
+    const stored: PortalNotification[] = JSON.parse(localStorage.getItem('portal_notifications') || '[]');
+    const updated = stored.map(n => n.notificationId === notificationId ? { ...n, cleared: true } : n);
+    localStorage.setItem('portal_notifications', JSON.stringify(updated));
+  } catch (e) {
+    // ignore
+  }
+}
+
+export async function clearAllNotifications(isAdmin: boolean = false, uid?: string): Promise<void> {
+  try {
+    const notifications = await getNotificationsForUser(uid, undefined, isAdmin);
+    const updatePromises = notifications.map(n => {
+      const docRef = doc(db, 'portalNotifications', n.notificationId);
+      return updateDoc(docRef, { cleared: true }).catch(() => {});
+    });
+    await Promise.allSettled(updatePromises);
+  } catch (e) {
+    // ignore
+  }
+
+  try {
+    const stored: PortalNotification[] = JSON.parse(localStorage.getItem('portal_notifications') || '[]');
+    const updated = stored.map(n => {
+      if (isAdmin || n.recipientUid === uid || n.recipientType === 'all') {
+        return { ...n, cleared: true };
+      }
+      return n;
+    });
+    localStorage.setItem('portal_notifications', JSON.stringify(updated));
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Dispatches a simulated weekly reminder event, creating learner & admin notifications
+export async function dispatchWeeklyReminder(weekLabel: string, topic: string, adminEmail: string = 'kapilnarula27july@gmail.com'): Promise<number> {
+  const registrations = await getAllWebinarRegistrations();
+  const now = new Date().toISOString();
+  let count = 0;
+
+  for (const reg of registrations) {
+    count++;
+    const notifId = `remind_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const learnerNotif: PortalNotification = {
+      notificationId: notifId,
+      recipientType: 'learner',
+      recipientUid: reg.uid,
+      title: `📅 ${weekLabel}: AI In Action Masterclass`,
+      message: `Upcoming event reminder: ${topic}. Scheduled for Oct 15, 2026. Check your calendar!`,
+      type: 'reminder',
+      createdAt: now,
+      read: false,
+      cleared: false,
+      metadata: {
+        weekLabel,
+        attendeeEmail: reg.email,
+        webinarDate: reg.webinarDate
+      }
+    };
+    await createPortalNotification(learnerNotif);
+  }
+
+  // Also create an admin notification recording the dispatch
+  const adminNotifId = `admin_remind_${Date.now()}`;
+  await createPortalNotification({
+    notificationId: adminNotifId,
+    recipientType: 'admin',
+    title: `📢 Weekly Reminder Dispatched: ${weekLabel}`,
+    message: `Weekly reminder "${topic}" was sent to ${registrations.length} registered attendee(s).`,
+    type: 'reminder',
+    createdAt: now,
+    read: false,
+    cleared: false,
+    metadata: {
+      recipientCount: registrations.length,
+      dispatchedBy: adminEmail
+    }
+  });
+
+  return registrations.length;
+}
+

@@ -28,6 +28,7 @@ import { AdminConfiguration } from './AdminConfiguration';
 import { AdminAuditLogs } from './AdminAuditLogs';
 import { SampleDataModal } from './SampleDataModal';
 import { exportAggregatedCsv, exportDetailedCsv } from '../../services/exportCsv';
+import { AdminWebinarRegistrations } from './AdminWebinarRegistrations';
 
 interface AdminDashboardProps {
   onOpenAdminLogin: () => void;
@@ -35,6 +36,7 @@ interface AdminDashboardProps {
   webinarConfig: WebinarConfig | null;
   learningConfig: LearningConfig | null;
   onRefreshConfig: () => void;
+  onOpenEmailHub?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -42,14 +44,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   config,
   webinarConfig,
   learningConfig,
-  onRefreshConfig
+  onRefreshConfig,
+  onOpenEmailHub
 }) => {
   const { user, isAdmin, adminSessionActive, logoutAdminSession } = useAuth();
 
   const [submissions, setSubmissions] = useState<AssessmentSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [activeTab, setActiveTab] = useState<'overview' | 'charts' | 'submissions' | 'questions' | 'config' | 'audit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'charts' | 'submissions' | 'registrations' | 'questions' | 'config' | 'audit'>('overview');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
   const [exportWarningModal, setExportWarningModal] = useState<boolean>(false);
@@ -296,6 +299,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
 
         <button
+          id="admin-tab-registrations"
+          onClick={() => setActiveTab('registrations')}
+          className={`px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'registrations'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-yellow-400 hover:text-yellow-300 hover:bg-slate-800/60'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+          <span>Masterclass & Push Reminders</span>
+        </button>
+
+        <button
           id="admin-tab-questions"
           onClick={() => setActiveTab('questions')}
           className={`px-4 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
@@ -359,6 +375,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {activeTab === 'submissions' && (
         <AdminSubmissions submissions={filteredSubmissions} />
+      )}
+
+      {activeTab === 'registrations' && (
+        <AdminWebinarRegistrations onOpenEmailHub={onOpenEmailHub} />
       )}
 
       {activeTab === 'questions' && (
